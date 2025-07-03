@@ -66,8 +66,8 @@ const EditMessagePanel: React.FC = memo(() => {
   const saveSubmitButtonClass = `${baseButtonClass} text-white bg-green-600/80 hover:shadow-[0_0_12px_2px_rgba(34,197,94,0.6)] focus:ring-green-500`;
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-40 flex justify-center items-center p-4 backdrop-blur-md" role="dialog" aria-modal="true" aria-labelledby="edit-message-panel-title">
-      <div className="aurora-panel p-5 sm:p-6 rounded-lg shadow-2xl w-full sm:max-w-2xl max-h-[90vh] flex flex-col text-gray-200">
+    <div className="fixed inset-0 bg-black/60 z-40 flex justify-center items-center p-4 backdrop-blur-md" role="dialog" aria-modal="true" aria-labelledby="edit-message-panel-title" onClick={handleCancelClick}>
+      <div className="aurora-panel p-5 sm:p-6 rounded-lg shadow-2xl w-full sm:max-w-2xl max-h-[90vh] flex flex-col text-gray-200" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center">
             <IconComponent className="w-5 h-5 sm:w-6 sm:h-6 mr-2 text-gray-400" />

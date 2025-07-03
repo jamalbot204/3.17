@@ -72,8 +72,8 @@ const DebugTerminalPanel: React.FC = memo(() => {
   const logs = currentChatSession.apiRequestLogs || [];
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex justify-center items-center p-4 backdrop-blur-md">
-      <div className="aurora-panel p-0 rounded-lg shadow-2xl w-full sm:max-w-2xl max-h-[90vh] flex flex-col text-gray-200">
+    <div className="fixed inset-0 bg-black/60 z-50 flex justify-center items-center p-4 backdrop-blur-md" onClick={closeDebugTerminal}>
+      <div className="aurora-panel p-0 rounded-lg shadow-2xl w-full sm:max-w-2xl max-h-[90vh] flex flex-col text-gray-200" onClick={(e) => e.stopPropagation()}>
         <header className="flex items-center justify-between p-4 border-b border-[var(--aurora-border)] sticky top-0 bg-[rgba(13,15,24,0.8)] z-10">
           <div className="flex items-center">
             <BugAntIcon className="w-5 h-5 mr-2 text-orange-400" />

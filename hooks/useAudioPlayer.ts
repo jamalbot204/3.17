@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { TTSSettings, AudioPlayerState, UseAudioPlayerOptions, UseAudioPlayerReturn } from '../types.ts';
 import { generateSpeech, playPcmAudio } from '../services/ttsService.ts';
 import { strictAbort } from '../services/cancellationService.ts'; // Import strictAbort
-import { PLAYBACK_SPEEDS } from '../constants.ts';
+import { PLAYBACK_SPEEDS, APP_TITLE } from '../constants.ts';
 
 
 export function useAudioPlayer(
@@ -92,9 +92,16 @@ export function useAudioPlayer(
             // playbackRate is a user setting, don't reset it on full stop unless intended
         }));
         playbackOffsetRef.current = 0;
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.metadata = null;
+          navigator.mediaSession.playbackState = 'none';
+        }
     } else {
          playbackOffsetRef.current = audioPlayerState.currentTime || 0;
          setAudioPlayerState(prev => ({ ...prev, isPlaying: false }));
+         if ('mediaSession' in navigator) {
+           navigator.mediaSession.playbackState = 'paused';
+         }
     }
   }, [audioPlayerState.currentTime]);
 
@@ -156,6 +163,15 @@ export function useAudioPlayer(
       duration: duration,
       currentPlayingText: textSegment,
     }));
+
+    if ('mediaSession' in navigator) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+            title: textSegment,
+            artist: APP_TITLE,
+        });
+        navigator.mediaSession.playbackState = 'playing';
+    }
+
     // Clear segment-specific fetch error now that playback is starting successfully
     setSegmentFetchErrors(prev => {
       const next = new Map(prev);
@@ -226,6 +242,27 @@ export function useAudioPlayer(
       }
     }
   }, [audioPlayerState.isPlaying, audioPlayerState.currentMessageId, audioPlayerState.currentTime, audioPlayerState.currentPlayingText, startPlaybackInternal]);
+
+  // Media Session API handlers
+  useEffect(() => {
+    if (!('mediaSession' in navigator)) {
+      return;
+    }
+    try {
+      navigator.mediaSession.setActionHandler('play', () => { resumePlayback(); });
+      navigator.mediaSession.setActionHandler('pause', () => { pausePlayback(); });
+    } catch (error) {
+      console.warn('The media session action handlers were not set correctly.', error);
+    }
+
+    return () => {
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.setActionHandler('play', null);
+        navigator.mediaSession.setActionHandler('pause', null);
+      }
+    };
+  }, [resumePlayback, pausePlayback]);
+
 
   const playText = useCallback(async (
     textSegment: string,

@@ -39,8 +39,9 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = memo(({
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirmation-modal-title"
+      onClick={onCancel}
     >
-      <div className="aurora-panel p-6 rounded-lg shadow-2xl w-full sm:max-w-md max-h-[90vh] flex flex-col text-gray-200">
+      <div className="aurora-panel p-6 rounded-lg shadow-2xl w-full sm:max-w-md max-h-[90vh] flex flex-col text-gray-200" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-4">
           <h2 id="confirmation-modal-title" className="text-xl font-semibold text-gray-100">{title}</h2>
           <button

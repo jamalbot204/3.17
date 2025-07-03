@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useMemo, memo, useCallback } from 'react';
 import { useChatState, useChatActions } from '../contexts/ChatContext.tsx';
 import { useUIContext } from '../contexts/UIContext.tsx';
@@ -155,8 +156,8 @@ const SettingsPanel: React.FC = memo(() => {
 
     return (
         <>
-            <div className="fixed inset-0 bg-black/60 z-40 flex justify-center items-center p-4 backdrop-blur-md">
-                <div className="aurora-panel p-6 rounded-lg shadow-2xl w-full sm:max-w-lg max-h-[90vh] overflow-y-auto text-gray-200 relative">
+            <div className="fixed inset-0 bg-black/60 z-40 flex justify-center items-center p-4 backdrop-blur-md" onClick={ui.closeSettingsPanel}>
+                <div className="aurora-panel p-6 rounded-lg shadow-2xl w-full sm:max-w-lg max-h-[90vh] overflow-y-auto text-gray-200 relative" onClick={(e) => e.stopPropagation()}>
                     <button onClick={ui.closeSettingsPanel} className="absolute top-3 right-3 text-gray-400 p-1 rounded-full transition-shadow hover:text-gray-100 hover:shadow-[0_0_10px_1px_rgba(255,255,255,0.2)]" aria-label="Close settings"><CloseIcon className="w-6 h-6" /></button>
                     <h2 className="text-2xl font-semibold mb-6 text-gray-100">Settings</h2>
                     <div className="space-y-6">

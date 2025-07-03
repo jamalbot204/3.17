@@ -87,19 +87,19 @@ const AppContent: React.FC = memo(() => {
 
   return (
     <div className="flex h-screen antialiased text-[var(--aurora-text-primary)] bg-transparent overflow-hidden">
-      <div className={`fixed inset-y-0 left-0 z-[60] transform transition-transform duration-300 ease-in-out ${ui.isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} w-72`}>
+      <div className={`fixed inset-y-0 left-0 z-30 transform transition-transform duration-300 ease-in-out ${ui.isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} w-72`}>
         <Sidebar />
       </div>
 
-      {ui.isSidebarOpen && <div className="fixed inset-0 z-30 bg-black bg-opacity-50 md:hidden" onClick={ui.closeSidebar} aria-hidden="true" />}
+      {ui.isSidebarOpen && <div className="fixed inset-0 z-20 bg-black bg-opacity-50" onClick={ui.closeSidebar} aria-hidden="true" />}
       
-      <main className={`flex-1 flex flex-col overflow-y-auto transition-all duration-300 ease-in-out ${ui.isSidebarOpen ? 'md:ml-72' : 'ml-0'} ${isAudioBarVisible ? 'pt-[76px]' : ''}`}>
+      <main className={`relative z-10 flex-1 flex flex-col overflow-y-auto transition-all duration-300 ease-in-out ${ui.isSidebarOpen ? 'md:ml-72' : 'ml-0'} ${isAudioBarVisible ? 'pt-[76px]' : ''}`}>
         <ChatView ref={chatViewRef} onEnterReadMode={handleEnterReadMode} />
       </main>
       
       <div className='absolute'>
         {isAudioBarVisible && (
-            <div className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-in-out ${ui.isSidebarOpen ? 'md:left-72' : 'left-0'}`}>
+            <div className={`fixed top-0 left-0 right-0 z-30 transition-all duration-300 ease-in-out ${ui.isSidebarOpen ? 'md:left-72' : 'left-0'}`}>
               <AdvancedAudioPlayer
                 audioPlayerState={audio.audioPlayerState}
                 onCloseView={audio.handleClosePlayerViewOnly} 

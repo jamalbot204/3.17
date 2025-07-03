@@ -1,5 +1,6 @@
 
 
+
 import { useState, useEffect, useCallback } from 'react';
 import * as layoutService from '../services/layoutService.ts'; // Adjusted path
 
@@ -46,9 +47,7 @@ export function useAppUI() {
   }, []);
 
   const closeSidebar = useCallback(() => {
-    if (typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches) {
-      setIsSidebarOpenState(false);
-    }
+    setIsSidebarOpenState(false);
   }, []);
 
   const showToast = useCallback((message: string, type: 'success' | 'error' = 'success', duration: number = 2000) => {

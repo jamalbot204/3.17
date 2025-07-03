@@ -118,8 +118,9 @@ const ExportConfigurationModal: React.FC = memo(() => {
         role="dialog"
         aria-modal="true"
         aria-labelledby="export-config-modal-title"
+        onClick={ui.closeExportConfigurationModal}
     >
-      <div className="aurora-panel p-5 sm:p-6 rounded-lg shadow-2xl w-full sm:max-w-3xl max-h-[95vh] flex flex-col text-gray-200">
+      <div className="aurora-panel p-5 sm:p-6 rounded-lg shadow-2xl w-full sm:max-w-3xl max-h-[95vh] flex flex-col text-gray-200" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-4 flex-shrink-0">
           <h2 id="export-config-modal-title" className="text-xl font-semibold text-gray-100">Export Chats & Preferences</h2>
           <button

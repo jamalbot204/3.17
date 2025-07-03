@@ -1,6 +1,5 @@
 
-
-import React, { useState, useRef, useEffect, useLayoutEffect, useCallback, useImperativeHandle, forwardRef, memo } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useImperativeHandle, forwardRef, memo } from 'react';
 import { useChatState, useChatInteractionStatus, useChatActions } from '../contexts/ChatContext.tsx';
 import { useUIContext } from '../contexts/UIContext.tsx';
 import { ChatMessageRole, AICharacter } from '../types.ts';
@@ -13,6 +12,7 @@ import { useAttachmentHandler } from '../hooks/useAttachmentHandler.ts';
 import useAutoResizeTextarea from '../hooks/useAutoResizeTextarea.ts';
 import { getModelDisplayName } from '../services/utils.ts';
 import { useApiKeyContext } from '../contexts/ApiKeyContext.tsx';
+import { useVirtualizer } from '@tanstack/react-virtual';
 
 interface ChatViewProps {
     onEnterReadMode: (content: string) => void;
@@ -25,7 +25,7 @@ export interface ChatViewHandles {
 const ChatView = memo(forwardRef<ChatViewHandles, ChatViewProps>(({
     onEnterReadMode,
 }, ref) => {
-    const { currentChatSession, visibleMessagesForCurrentChat, currentChatId, logApiRequest } = useChatState();
+    const { currentChatSession, visibleMessagesForCurrentChat, currentChatId, logApiRequest, chatHistory } = useChatState();
     const { isLoading, currentGenerationTimeDisplay, autoSendHook } = useChatInteractionStatus();
     const {
         handleSendMessage, handleContinueFlow, handleCancelGeneration, handleManualSave,
@@ -37,16 +37,13 @@ const ChatView = memo(forwardRef<ChatViewHandles, ChatViewProps>(({
     const { activeApiKey } = useApiKeyContext();
 
     const [inputMessage, setInputMessage] = useState('');
+    const [expansionState, setExpansionState] = useState<Record<string, { content?: boolean; thoughts?: boolean }>>({});
     const fileInputRef = useRef<HTMLInputElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const messageListRef = useRef<HTMLDivElement>(null);
     const textareaRef = useAutoResizeTextarea<HTMLTextAreaElement>(inputMessage);
     const [showLoadButtonsUI, setShowLoadButtonsUI] = useState(false);
-
-    const shouldPreserveScrollRef = useRef<boolean>(false);
-    const prevScrollHeightRef = useRef<number>(0);
-    const prevVisibleMessagesLengthRef = useRef<number>(0);
-    const prevChatIdRef = useRef<string | null | undefined>(null);
+    const isFetchingMoreRef = useRef(false);
 
     const isCharacterMode = currentChatSession?.isCharacterModeActive || false;
     const [characters, setCharactersState] = useState<AICharacter[]>(currentChatSession?.aiCharacters || []);
@@ -76,43 +73,69 @@ const ChatView = memo(forwardRef<ChatViewHandles, ChatViewProps>(({
     const visibleMessages = visibleMessagesForCurrentChat || []; // Use pre-sliced messages from context
     const totalMessagesInSession = currentChatSession ? currentChatSession.messages.length : 0;
 
+    const virtualizer = useVirtualizer({
+        count: visibleMessages.length,
+        getScrollElement: () => messageListRef.current,
+        estimateSize: () => 150,
+        overscan: 5,
+        measureElement: (element) => (element as HTMLElement).offsetHeight,
+    });
+
+    const toggleExpansion = useCallback((messageId: string, type: 'content' | 'thoughts') => {
+        setExpansionState(prev => ({
+            ...prev,
+            [messageId]: {
+                ...prev[messageId],
+                [type]: !prev[messageId]?.[type],
+            },
+        }));
+    }, []);
+
     const handleLoadAll = useCallback(() => {
         if (!currentChatSession) return;
-        prevScrollHeightRef.current = messageListRef.current?.scrollHeight || 0;
-        shouldPreserveScrollRef.current = true;
         handleLoadAllDisplayMessages(currentChatSession.id, totalMessagesInSession); // Pass totalMessagesInSession to load all
         setShowLoadButtonsUI(false);
     }, [currentChatSession, handleLoadAllDisplayMessages, totalMessagesInSession]);
 
     useImperativeHandle(ref, () => ({
         scrollToMessage: (messageId: string) => {
-            const messageElement = messageListRef.current?.querySelector(`#message-item-${messageId}`);
-            if (messageElement) {
-                messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                messageElement.classList.add('ring-2', 'ring-blue-400', 'transition-all', 'duration-1000', 'ease-out');
+            const index = visibleMessages.findIndex(m => m.id === messageId);
+    
+            const highlightElement = (targetId: string) => {
                 setTimeout(() => {
-                    messageElement.classList.remove('ring-2', 'ring-blue-400', 'transition-all', 'duration-1000', 'ease-out');
-                }, 2500);
+                    const element = messageListRef.current?.querySelector(`#message-item-${targetId}`);
+                    if (element) {
+                        element.classList.add('ring-2', 'ring-blue-400', 'transition-all', 'duration-1000', 'ease-out');
+                        setTimeout(() => {
+                            element.classList.remove('ring-2', 'ring-blue-400', 'transition-all', 'duration-1000', 'ease-out');
+                        }, 2500);
+                    }
+                }, 300); // Delay to allow virtualizer to render the item
+            };
+    
+            if (index > -1) {
+                virtualizer.scrollToIndex(index, { align: 'center', behavior: 'smooth' });
+                highlightElement(messageId);
             } else {
                 if (currentChatSession && visibleMessages.length < totalMessagesInSession) {
-                    const isMessageInFullList = currentChatSession.messages.some(m => m.id === messageId);
-                    if (isMessageInFullList) {
+                    const fullIndex = currentChatSession.messages.findIndex(m => m.id === messageId);
+                    if (fullIndex > -1) {
                         handleLoadAll();
                         setTimeout(() => {
-                            const newAttemptMessageElement = messageListRef.current?.querySelector(`#message-item-${messageId}`);
-                            if (newAttemptMessageElement) {
-                                newAttemptMessageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                newAttemptMessageElement.classList.add('ring-2', 'ring-blue-400', 'transition-all', 'duration-1000', 'ease-out');
-                                setTimeout(() => {
-                                    newAttemptMessageElement.classList.remove('ring-2', 'ring-blue-400', 'transition-all', 'duration-1000', 'ease-out');
-                                }, 2500);
-                            }
-                        }, 500);
+                            // After handleLoadAll, visibleMessages will be the full list.
+                            // The index of the message will be `fullIndex` in the original array.
+                            // We need to re-find the index in case the underlying array changed, though fullIndex should be correct.
+                             const finalIndex = chatHistory.find(s => s.id === currentChatSession.id)?.messages.findIndex(m => m.id === messageId) ?? -1;
+                             if(finalIndex > -1) {
+                                virtualizer.scrollToIndex(finalIndex, { align: 'center', behavior: 'smooth' });
+                                highlightElement(messageId);
+                             }
+                        }, 500); // Allow time for state update and re-render
                     }
                 }
             }
         }
-    }), [currentChatSession, visibleMessages.length, totalMessagesInSession, handleLoadAll]);
+    }), [currentChatSession, visibleMessages, totalMessagesInSession, handleLoadAll, virtualizer, chatHistory]);
 
 
     useEffect(() => {
@@ -121,30 +144,6 @@ const ChatView = memo(forwardRef<ChatViewHandles, ChatViewProps>(({
             setIsInfoInputModeActive(false);
         }
     }, [currentChatSession?.aiCharacters, currentChatSession?.isCharacterModeActive, isInfoInputModeActive]);
-
-
-    useLayoutEffect(() => {
-        const listElement = messageListRef.current;
-        if (!listElement) return;
-
-        const isNewChatOrSwitched = prevChatIdRef.current !== currentChatId;
-        const messagesLengthChanged = prevVisibleMessagesLengthRef.current !== visibleMessages.length;
-        
-        if (isNewChatOrSwitched) {
-            listElement.scrollTop = listElement.scrollHeight;
-        } else if (shouldPreserveScrollRef.current && messagesLengthChanged) {
-            listElement.scrollTop = listElement.scrollHeight - prevScrollHeightRef.current;
-            shouldPreserveScrollRef.current = false;
-        } else if (messagesLengthChanged && visibleMessages.length > prevVisibleMessagesLengthRef.current) {
-            const lastMessage = visibleMessages[visibleMessages.length - 1];
-            const isStreamingOrNewOwnMessage = lastMessage?.isStreaming || (lastMessage?.role === ChatMessageRole.USER && prevVisibleMessagesLengthRef.current < visibleMessages.length);
-            if (isStreamingOrNewOwnMessage && (listElement.scrollHeight - listElement.scrollTop - listElement.clientHeight < 200)) {
-                listElement.scrollTop = listElement.scrollHeight;
-            }
-        }
-        prevVisibleMessagesLengthRef.current = visibleMessages.length;
-        prevChatIdRef.current = currentChatId;
-    }, [visibleMessages, currentChatId]);
 
 
     const handleSendMessageClick = useCallback(async (characterId?: string) => {
@@ -183,8 +182,6 @@ const ChatView = memo(forwardRef<ChatViewHandles, ChatViewProps>(({
             setIsInfoInputModeActive(false);
         }
 
-        prevScrollHeightRef.current = messageListRef.current?.scrollHeight || 0;
-        shouldPreserveScrollRef.current = false;
         await handleSendMessage(currentInputMessageValue, attachmentsToSend, undefined, characterId, temporaryContextFlag);
     }, [inputMessage, getValidAttachmentsToSend, isLoading, currentChatSession, autoSendHook, isAnyFileStillProcessing, ui, isCharacterMode, isInfoInputModeActive, handleSendMessage, resetSelectedFiles]);
 
@@ -192,8 +189,6 @@ const ChatView = memo(forwardRef<ChatViewHandles, ChatViewProps>(({
         if (isLoading || !currentChatSession || currentChatSession.messages.length === 0 || isCharacterMode || autoSendHook.isAutoSendingActive) return;
         setInputMessage('');
         resetSelectedFiles();
-        prevScrollHeightRef.current = messageListRef.current?.scrollHeight || 0;
-        shouldPreserveScrollRef.current = false;
         await handleContinueFlow();
     }, [isLoading, currentChatSession, isCharacterMode, autoSendHook.isAutoSendingActive, handleContinueFlow, resetSelectedFiles]);
 
@@ -213,18 +208,27 @@ const ChatView = memo(forwardRef<ChatViewHandles, ChatViewProps>(({
     const handleScroll = useCallback(() => {
         if (messageListRef.current) {
             const { scrollTop } = messageListRef.current;
-            if (scrollTop < 5 && currentChatSession && visibleMessages.length < totalMessagesInSession) {
+            const canFetchMore = currentChatSession && visibleMessages.length < totalMessagesInSession;
+    
+            if (scrollTop < 5 && canFetchMore) {
                 setShowLoadButtonsUI(true);
+                if (!isLoading && !isFetchingMoreRef.current) {
+                    isFetchingMoreRef.current = true;
+                    handleLoadMoreDisplayMessages(currentChatSession.id, LOAD_MORE_MESSAGES_COUNT)
+                        .finally(() => {
+                            setTimeout(() => {
+                                isFetchingMoreRef.current = false;
+                            }, 500); // Debounce to prevent rapid-fire requests
+                        });
+                }
             } else {
                 setShowLoadButtonsUI(false);
             }
         }
-    }, [currentChatSession, visibleMessages.length, totalMessagesInSession]);
+    }, [currentChatSession, visibleMessages.length, totalMessagesInSession, isLoading, handleLoadMoreDisplayMessages]);
 
     const handleLoadMore = useCallback((count: number) => {
         if (!currentChatSession) return;
-        prevScrollHeightRef.current = messageListRef.current?.scrollHeight || 0;
-        shouldPreserveScrollRef.current = true;
         handleLoadMoreDisplayMessages(currentChatSession.id, count);
         setShowLoadButtonsUI(false);
     }, [currentChatSession, handleLoadMoreDisplayMessages]);
@@ -356,32 +360,65 @@ const ChatView = memo(forwardRef<ChatViewHandles, ChatViewProps>(({
 
             <div ref={messageListRef} onScroll={handleScroll} className={`flex-1 p-4 sm:p-6 overflow-y-auto relative ${ui.isSelectionModeActive ? 'pb-20' : ''}`} role="log" aria-live="polite">
                 {currentChatSession && visibleMessages.length < totalMessagesInSession && (
-                    <div className="sticky top-2 left-1/2 transform -translate-x-1/2 z-10 flex flex-col items-center space-y-2 my-2 h-20 justify-center">
+                    <div className="sticky top-2 w-full z-10 flex flex-col items-center space-y-2 my-2 h-20 justify-center">
                         <div className={`transition-opacity duration-300 ${showLoadButtonsUI ? 'opacity-100' : 'opacity-0'}`}>
                             {amountToLoad > 0 && <button onClick={() => handleLoadMore(amountToLoad)} className="px-4 py-2 text-xs bg-[var(--aurora-accent-primary)] text-white rounded-full shadow-lg transition-all transform hover:scale-105 hover:shadow-[0_0_12px_2px_rgba(90,98,245,0.6)] mb-2">Show {amountToLoad} More</button>}
                             <button onClick={handleLoadAll} className="px-4 py-2 text-xs bg-white/10 text-white rounded-full shadow-lg transition-all transform hover:scale-105 hover:shadow-[0_0_12px_2px_rgba(255,255,255,0.2)]">Show All History ({totalMessagesInSession - visibleMessages.length} more)</button>
                         </div>
                     </div>
                 )}
-                <div className={`flex flex-col space-y-0`}>
-                    {currentChatSession ? (
-                        visibleMessages.length > 0 ? (
-                            visibleMessages.map((msg) => {
-                                const fullMessageList = currentChatSession!.messages; 
+                {currentChatSession ? (
+                    visibleMessages.length > 0 ? (
+                        <div
+                            style={{
+                                height: `${virtualizer.getTotalSize()}px`,
+                                width: '100%',
+                                position: 'relative',
+                            }}
+                        >
+                            {virtualizer.getVirtualItems().map((virtualItem) => {
+                                const msg = visibleMessages[virtualItem.index];
+                                if (!msg) return null;
+
+                                const fullMessageList = currentChatSession!.messages;
                                 const currentMessageIndexInFullList = fullMessageList.findIndex(m => m.id === msg.id);
                                 const nextMessageInFullList = (currentMessageIndexInFullList !== -1 && currentMessageIndexInFullList < fullMessageList.length - 1) ? fullMessageList[currentMessageIndexInFullList + 1] : null;
                                 const canRegenerateFollowingAI = msg.role === ChatMessageRole.USER && nextMessageInFullList !== null && (nextMessageInFullList.role === ChatMessageRole.MODEL || nextMessageInFullList.role === ChatMessageRole.ERROR) && !isCharacterMode;
-                                return <MessageItem key={msg.id} message={msg} canRegenerateFollowingAI={canRegenerateFollowingAI} chatScrollContainerRef={messageListRef} onEnterReadMode={onEnterReadMode} />;
-                            })
-                        ) : (
-                            <div className="text-center text-gray-500 italic mt-10">
-                                {isCharacterMode && characters.length === 0 ? "Add some characters and start the scene!" : (isCharacterMode ? "Select a character to speak." : "Start the conversation!")}
-                            </div>
-                        )
+                                
+                                return (
+                                    <div
+                                        key={virtualItem.key}
+                                        ref={virtualizer.measureElement}
+                                        data-index={virtualItem.index}
+                                        style={{
+                                            position: 'absolute',
+                                            top: 0,
+                                            left: 0,
+                                            width: '100%',
+                                            transform: `translateY(${virtualItem.start}px)`,
+                                        }}
+                                    >
+                                        <MessageItem
+                                            message={msg}
+                                            canRegenerateFollowingAI={canRegenerateFollowingAI}
+                                            chatScrollContainerRef={messageListRef}
+                                            onEnterReadMode={onEnterReadMode}
+                                            isContentExpanded={!!expansionState[msg.id]?.content}
+                                            isThoughtsExpanded={!!expansionState[msg.id]?.thoughts}
+                                            onToggleExpansion={toggleExpansion}
+                                        />
+                                    </div>
+                                );
+                            })}
+                        </div>
                     ) : (
-                        <div className="text-center text-gray-500 italic mt-10">Select a chat from the history or start a new one.</div>
-                    )}
-                </div>
+                        <div className="text-center text-gray-500 italic mt-10">
+                            {isCharacterMode && characters.length === 0 ? "Add some characters and start the scene!" : (isCharacterMode ? "Select a character to speak." : "Start the conversation!")}
+                        </div>
+                    )
+                ) : (
+                    <div className="text-center text-gray-500 italic mt-10">Select a chat from the history or start a new one.</div>
+                )}
                 <div ref={messagesEndRef} />
             </div>
             

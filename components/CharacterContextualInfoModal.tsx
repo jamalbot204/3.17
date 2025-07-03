@@ -43,8 +43,9 @@ const CharacterContextualInfoModal: React.FC = memo(() => {
         role="dialog"
         aria-modal="true"
         aria-labelledby="contextual-info-modal-title"
+        onClick={closeCharacterContextualInfoModal}
     >
-      <div className="aurora-panel p-6 rounded-lg shadow-2xl w-full sm:max-w-lg max-h-[90vh] flex flex-col text-gray-200">
+      <div className="aurora-panel p-6 rounded-lg shadow-2xl w-full sm:max-w-lg max-h-[90vh] flex flex-col text-gray-200" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-4 flex-shrink-0">
           <h2 id="contextual-info-modal-title" className="text-xl font-semibold">Contextual Info for <span className="text-purple-400">{editingCharacterForContextualInfo.name}</span></h2>
           <button onClick={closeCharacterContextualInfoModal} className="p-1 text-gray-400 rounded-full transition-all hover:text-gray-100 hover:drop-shadow-[0_0_4px_rgba(255,255,255,0.5)]" aria-label="Close contextual info editor"><CloseIcon /></button>

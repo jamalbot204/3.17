@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef, memo } from 'react'; // Added memo
+import React, { useState, useEffect, useRef, memo, useCallback } from 'react'; // Added memo and useCallback
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { LightAsync as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -27,6 +27,9 @@ interface MessageItemProps {
   chatScrollContainerRef?: React.RefObject<HTMLDivElement>;
   highlightTerm?: string;
   onEnterReadMode: (content: string) => void;
+  isContentExpanded?: boolean;
+  isThoughtsExpanded?: boolean;
+  onToggleExpansion: (messageId: string, type: 'content' | 'thoughts') => void;
 }
 
 const CodeBlock: React.FC<React.PropsWithChildren<{ inline?: boolean; className?: string }>> = ({
@@ -175,6 +178,9 @@ const MessageItemComponent: React.FC<MessageItemProps> = ({
   chatScrollContainerRef,
   highlightTerm,
   onEnterReadMode,
+  isContentExpanded,
+  isThoughtsExpanded,
+  onToggleExpansion,
 }) => {
   const { currentChatSession, messageGenerationTimes } = useChatState();
   const { isLoading } = useChatInteractionStatus();
@@ -195,13 +201,8 @@ const MessageItemComponent: React.FC<MessageItemProps> = ({
   
   const initialDropdownHorizontalClass = isUser ? 'left-0' : 'right-0';
   const [dynamicDropdownClass, setDynamicDropdownClass] = useState<string>(initialDropdownHorizontalClass);
-
-  const [isThoughtsExpanded, setIsThoughtsExpanded] = useState(false);
-  const [isContentExpanded, setIsContentExpanded] = useState(false);
   
   const markdownContentRef = useRef<HTMLDivElement>(null); 
-  const rootDivRef = useRef<HTMLDivElement>(null);
-  const [hasBeenVisible, setHasBeenVisible] = useState(false);
 
   // Multi-select state from context
   const { isSelectionModeActive, selectedMessageIds, toggleMessageSelection } = ui;
@@ -245,33 +246,7 @@ const MessageItemComponent: React.FC<MessageItemProps> = ({
     : displayContent;
 
   useEffect(() => {
-    const currentRef = rootDivRef.current;
-    if (!currentRef || hasBeenVisible) return; // Don't observe if already visible
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setHasBeenVisible(true);
-          observer.unobserve(currentRef); 
-        }
-      },
-      {
-        root: chatScrollContainerRef?.current || null,
-        rootMargin: '250px 0px', 
-        threshold: 0.01, 
-      }
-    );
-
-    observer.observe(currentRef);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [chatScrollContainerRef, message.id, hasBeenVisible]);
-
-
-  useEffect(() => {
-    if (hasBeenVisible && markdownContentRef.current) { // Only highlight if visible and ref available
+    if (markdownContentRef.current) {
       const instance = new Mark(markdownContentRef.current);
       instance.unmark({
         done: () => {
@@ -288,7 +263,7 @@ const MessageItemComponent: React.FC<MessageItemProps> = ({
         }
       });
     }
-  }, [highlightTerm, contentToRender, isContentExpanded, hasBeenVisible]); 
+  }, [highlightTerm, contentToRender, isContentExpanded]); 
 
 
   useEffect(() => {
@@ -586,24 +561,12 @@ const MessageItemComponent: React.FC<MessageItemProps> = ({
 
   return (
     <div 
-      ref={rootDivRef} 
       id={`message-item-${message.id}`} 
       className={`group flex items-start mb-1 w-full relative transition-colors duration-200 ${isSelected ? 'bg-blue-900/40 rounded-md' : ''} ${isSelectionModeActive ? 'cursor-pointer' : ''} ${layoutClasses}`} 
       onClick={() => isSelectionModeActive && toggleMessageSelection(message.id)}
       role="listitem"
     >
       {!isUser && isSelectionModeActive && <Checkbox isSelected={isSelected} onToggle={() => toggleMessageSelection(message.id)} role={message.role} />}
-      {!hasBeenVisible ? (
-        <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} max-w-xl lg:max-w-2xl xl:max-w-3xl w-full`}>
-          <div 
-            className={`px-4 py-3 rounded-lg opacity-40 animate-pulse w-3/4 sm:w-1/2 bg-white/5`}
-            style={{ minHeight: '50px' }} 
-          >
-            <div className="h-3 bg-white/10 rounded w-3/4 mb-2"></div>
-            <div className="h-2 bg-white/10 rounded w-1/2"></div>
-          </div>
-        </div>
-      ) : (
       <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} max-w-xl lg:max-w-2xl xl:max-w-3xl`}>
         {isModel && message.isStreaming && !isError && !extractedThoughts && (
           <div 
@@ -623,7 +586,7 @@ const MessageItemComponent: React.FC<MessageItemProps> = ({
           <div className="w-full mb-1.5">
             <div className="bg-slate-800/50 border border-slate-700/80 rounded-lg shadow-md">
               <button
-                onClick={() => setIsThoughtsExpanded(!isThoughtsExpanded)}
+                onClick={() => onToggleExpansion(message.id, 'thoughts')}
                 className="w-full flex items-center justify-between p-2.5 text-sm text-slate-300 transition-colors hover:bg-slate-700/70 rounded-t-lg focus:outline-none"
                 aria-expanded={isThoughtsExpanded}
                 aria-controls={`thoughts-content-${message.id}`}
@@ -671,7 +634,7 @@ const MessageItemComponent: React.FC<MessageItemProps> = ({
                 )}
                  {isLongTextContent && (
                     <button
-                        onClick={() => setIsContentExpanded(!isContentExpanded)}
+                        onClick={() => onToggleExpansion(message.id, 'content')}
                         className="text-blue-300 hover:text-blue-200 text-xs mt-1.5 focus:outline-none flex items-center transition-all hover:drop-shadow-[0_0_3px_rgba(147,197,253,0.8)]"
                         aria-expanded={isContentExpanded}
                     >
@@ -903,7 +866,6 @@ const MessageItemComponent: React.FC<MessageItemProps> = ({
             </div>
         )}
       </div>
-      )}
        {isUser && isSelectionModeActive && <Checkbox isSelected={isSelected} onToggle={() => toggleMessageSelection(message.id)} role={message.role} />}
     </div>
   );

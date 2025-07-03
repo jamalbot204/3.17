@@ -1,4 +1,3 @@
-
 import { ChatSession } from '../types.ts'; 
 import { USER_DEFINED_GLOBAL_DEFAULTS_KEY } from '../constants.ts';
 
@@ -69,10 +68,8 @@ function openDB(): Promise<IDBDatabase> {
 
         request.onblocked = () => {
             console.warn('IndexedDB open is blocked. This usually means other tabs are holding an older version of the DB open. Please close them and refresh if issues persist.');
-            // Do not clear openingPromise here, as 'blocked' might be followed by 'success' or 'error'.
-            // If it's a persistent block, the promise might hang or eventually error.
-            // For very robust handling, a timeout mechanism could be added here.
-            // reject(new Error('IndexedDB open request was blocked.')); // Optionally reject
+            // Reject the promise to prevent the app from hanging
+            reject(new Error('Database open request was blocked. Please close other tabs with this app open and refresh.'));
         };
     });
     return openingPromise;
