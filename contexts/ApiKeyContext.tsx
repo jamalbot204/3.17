@@ -14,6 +14,8 @@ interface ApiKeyContextType {
   moveKey: (id: string, direction: 'up' | 'down') => void;
   moveKeyToEdge: (id: string, edge: 'top' | 'bottom') => void;
   rotateActiveKey: () => Promise<void>;
+  isRotationEnabled: boolean;
+  toggleRotation: () => void;
 }
 
 const ApiKeyContext = createContext<ApiKeyContextType | null>(null);

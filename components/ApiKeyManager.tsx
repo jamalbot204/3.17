@@ -2,7 +2,7 @@ import React, { memo, useCallback } from 'react';
 import { useApiKeyContext } from '../contexts/ApiKeyContext.tsx';
 import { useUIContext } from '../contexts/UIContext.tsx';
 import { ApiKey } from '../types.ts';
-import { PlusIcon, TrashIcon, CheckIcon, ChevronUpIcon, ChevronDownIcon, ChevronDoubleUpIcon, ChevronDoubleDownIcon, EyeIcon, EyeOffIcon } from './Icons.tsx';
+import { PlusIcon, TrashIcon, CheckIcon, ChevronUpIcon, ChevronDownIcon, ChevronDoubleUpIcon, ChevronDoubleDownIcon, EyeIcon, EyeOffIcon, ArrowPathIcon } from './Icons.tsx';
 
 const ReorderButton: React.FC<{ onClick: () => void, disabled: boolean, title: string, children: React.ReactNode }> = memo(({ onClick, disabled, title, children }) => (
     <button onClick={onClick} disabled={disabled} title={title} className="p-0.5 text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed">
@@ -80,7 +80,7 @@ const ApiKeyItem: React.FC<{
 
 
 const ApiKeyManager: React.FC = memo(() => {
-  const { apiKeys, isKeyVisible, addApiKey, updateApiKey, toggleKeyVisibility, moveKey, moveKeyToEdge } = useApiKeyContext();
+  const { apiKeys, isKeyVisible, addApiKey, updateApiKey, toggleKeyVisibility, moveKey, moveKeyToEdge, isRotationEnabled, toggleRotation } = useApiKeyContext();
   const { requestDeleteConfirmation } = useUIContext();
 
   const handleDelete = useCallback((id: string) => {
@@ -111,6 +111,19 @@ const ApiKeyManager: React.FC = memo(() => {
         </button>
         <button onClick={toggleKeyVisibility} title={isKeyVisible ? "Hide Keys" : "Show Keys"} className="p-2 text-gray-300 bg-white/5 rounded-md hover:text-white">
           {isKeyVisible ? <EyeOffIcon /> : <EyeIcon />}
+        </button>
+        <button 
+          onClick={toggleRotation} 
+          title={isRotationEnabled ? "Turn Off Key Rotation" : "Turn On Key Rotation"} 
+          className={`flex items-center px-3 py-2 text-xs font-medium rounded-md transition-all disabled:opacity-50 ${
+            isRotationEnabled 
+              ? 'bg-green-600/80 text-white hover:shadow-[0_0_12px_2px_rgba(34,197,94,0.6)]' 
+              : 'bg-gray-600/80 text-gray-200 hover:shadow-[0_0_12px_2px_rgba(255,255,255,0.2)]'
+          }`}
+          disabled={apiKeys.length < 2}
+        >
+          <ArrowPathIcon className={`w-4 h-4 mr-1.5 ${isRotationEnabled ? 'animate-spin-slow' : ''}`} />
+          Rotation: {isRotationEnabled ? 'On' : 'Off'}
         </button>
       </div>
     </div>

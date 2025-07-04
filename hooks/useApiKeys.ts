@@ -8,22 +8,27 @@ export function useApiKeys() {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [isKeyVisible, setIsKeyVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRotationEnabled, setIsRotationEnabled] = useState(true);
 
   useEffect(() => {
-    const loadKeys = async () => {
-      // Always proceed with loading from IndexedDB for local development.
+    const loadKeysAndSettings = async () => {
       setIsLoading(true);
       try {
         const storedKeys = await dbService.getAppMetadata<ApiKey[]>(METADATA_KEYS.API_KEYS);
         setApiKeys(storedKeys || []);
+        
+        const storedRotationSetting = await dbService.getAppMetadata<boolean>(METADATA_KEYS.API_KEY_ROTATION);
+        // If it's undefined (never set), default to true. If false, it's false.
+        setIsRotationEnabled(storedRotationSetting !== false);
       } catch (error) {
-        console.error("Failed to load API keys from storage:", error);
+        console.error("Failed to load API keys or settings from storage:", error);
         setApiKeys([]);
+        setIsRotationEnabled(true); // Default on error
       } finally {
         setIsLoading(false);
       }
     };
-    loadKeys();
+    loadKeysAndSettings();
   }, []);
 
   const persistKeys = useCallback(async (keys: ApiKey[]) => {
@@ -91,14 +96,24 @@ export function useApiKeys() {
     persistKeys(newKeys);
   }, [apiKeys, persistKeys]);
 
+  const toggleRotation = useCallback(async () => {
+    const newRotationState = !isRotationEnabled;
+    setIsRotationEnabled(newRotationState);
+    try {
+      await dbService.setAppMetadata(METADATA_KEYS.API_KEY_ROTATION, newRotationState);
+    } catch (error) {
+      console.error("Failed to save API key rotation setting:", error);
+    }
+  }, [isRotationEnabled]);
+
   const rotateActiveKey = useCallback(async () => {
-    if (apiKeys.length < 2) {
+    if (!isRotationEnabled || apiKeys.length < 2) {
       return;
     }
     const newKeys = [...apiKeys.slice(1), apiKeys[0]];
     setApiKeys(newKeys);
     await persistKeys(newKeys);
-  }, [apiKeys, persistKeys]);
+  }, [apiKeys, persistKeys, isRotationEnabled]);
 
   const toggleKeyVisibility = useCallback(() => {
     setIsKeyVisible(prev => !prev);
@@ -118,5 +133,7 @@ export function useApiKeys() {
     moveKey,
     moveKeyToEdge,
     rotateActiveKey,
-  }), [apiKeys, activeApiKey, isKeyVisible, isLoading, addApiKey, updateApiKey, deleteApiKey, toggleKeyVisibility, moveKey, moveKeyToEdge, rotateActiveKey]);
+    isRotationEnabled,
+    toggleRotation,
+  }), [apiKeys, activeApiKey, isKeyVisible, isLoading, addApiKey, updateApiKey, deleteApiKey, toggleKeyVisibility, moveKey, moveKeyToEdge, rotateActiveKey, isRotationEnabled, toggleRotation]);
 }

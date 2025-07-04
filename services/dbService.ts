@@ -242,4 +242,5 @@ export const METADATA_KEYS = {
     USER_DEFINED_GLOBAL_DEFAULTS: USER_DEFINED_GLOBAL_DEFAULTS_KEY,
     EXPORT_CONFIGURATION: 'exportConfiguration', // New key for export settings
     API_KEYS: 'apiKeys', // For storing user-managed API keys
+    API_KEY_ROTATION: 'apiKeyRotationEnabled',
 };

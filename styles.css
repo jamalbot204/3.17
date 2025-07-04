@@ -153,7 +153,13 @@ input[type=range]:active::-webkit-slider-thumb {
 .animate-thinking-dots > div:nth-child(2) {
     animation-delay: -0.16s;
 }
-
+@keyframes spin-slow {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .animate-spin-slow {
+      animation: spin-slow 3s linear infinite;
+    }
 @keyframes 생각_점_깜빡임 {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.4; transform: scale(0.9); }

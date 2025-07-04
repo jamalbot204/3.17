@@ -37,6 +37,9 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = memo(({ isOpen, onClose }) => {
         </div>
 
         <div className="overflow-y-auto flex-grow pr-1 -mr-1">
+            <p className="text-sm text-gray-400 mb-4">
+                The application uses the top API key in the list. Enable rotation to automatically cycle to the next key after each API call, which can help manage rate limits across multiple keys.
+            </p>
             <ApiKeyManager />
         </div>
 
