@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { EditMessagePanelDetails } from '../components/EditMessagePanel.tsx'; // Adjusted path
 import { AICharacter, ChatSession, AttachmentWithContext } from '../types.ts'; // Adjusted path
@@ -37,6 +36,9 @@ export function useAppModals(
   // New state for ChatAttachmentsModal
   const [isChatAttachmentsModalOpen, setIsChatAttachmentsModalOpen] = useState(false);
   const [attachmentsForModal, setAttachmentsForModal] = useState<AttachmentWithContext[]>([]);
+
+  // New state for ApiKeyModal
+  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
 
 
   const openSettingsPanel = useCallback(() => { setIsSettingsPanelOpen(true); closeSidebar(); }, [closeSidebar]);
@@ -142,6 +144,10 @@ export function useAppModals(
     setAttachmentsForModal([]);
   }, []);
 
+  // Handlers for ApiKeyModal
+  const openApiKeyModal = useCallback(() => { setIsApiKeyModalOpen(true); closeSidebar(); }, [closeSidebar]);
+  const closeApiKeyModal = useCallback(() => setIsApiKeyModalOpen(false), []);
+
 
   return {
     isSettingsPanelOpen, openSettingsPanel, closeSettingsPanel,
@@ -166,5 +172,10 @@ export function useAppModals(
     attachmentsForModal,
     openChatAttachmentsModal,
     closeChatAttachmentsModal,
+
+    // ApiKeyModal related
+    isApiKeyModalOpen,
+    openApiKeyModal,
+    closeApiKeyModal,
   };
 }

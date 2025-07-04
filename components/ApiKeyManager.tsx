@@ -1,4 +1,3 @@
-
 import React, { memo, useCallback } from 'react';
 import { useApiKeyContext } from '../contexts/ApiKeyContext.tsx';
 import { useUIContext } from '../contexts/UIContext.tsx';
@@ -89,8 +88,7 @@ const ApiKeyManager: React.FC = memo(() => {
   }, [requestDeleteConfirmation]);
   
   return (
-    <div className="border-t border-[var(--aurora-border)] pt-4">
-      <h3 className="text-md font-medium text-gray-300 mb-2">API Key Management</h3>
+    <div>
       <div className="space-y-2">
         {apiKeys.map((key, index) => (
           <ApiKeyItem

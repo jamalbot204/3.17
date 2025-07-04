@@ -1,16 +1,13 @@
-
-
 import React, { useState, useEffect, useMemo, memo, useCallback } from 'react';
 import { useChatState, useChatActions } from '../contexts/ChatContext.tsx';
 import { useUIContext } from '../contexts/UIContext.tsx';
 import { GeminiSettings, SafetySetting } from '../types.ts';
 import { DEFAULT_SETTINGS, MODEL_DEFINITIONS, DEFAULT_MODEL_ID, INITIAL_MESSAGES_COUNT, MODELS_SUPPORTING_THINKING_BUDGET_UI, MODELS_SENDING_THINKING_CONFIG_API } from '../constants.ts';
-import { CloseIcon, ShieldCheckIcon, PencilIcon, MagnifyingGlassIcon, LinkIcon, BugAntIcon, ArrowPathIcon, SpeakerWaveIcon, CalculatorIcon, ExportBoxIcon, PlayIcon, BookOpenIcon, FolderOpenIcon } from './Icons.tsx';
+import { CloseIcon, ShieldCheckIcon, PencilIcon, MagnifyingGlassIcon, LinkIcon, BugAntIcon, ArrowPathIcon, SpeakerWaveIcon, CalculatorIcon, ExportBoxIcon, PlayIcon, BookOpenIcon, FolderOpenIcon, KeyIcon } from './Icons.tsx';
 import SafetySettingsModal from './SafetySettingsModal.tsx';
 import InstructionEditModal from './InstructionEditModal.tsx';
 import TtsSettingsModal from './TtsSettingsModal.tsx';
 import ThinkingBudgetControl from './ThinkingBudgetControl.tsx'; // Import new component
-import ApiKeyManager from './ApiKeyManager.tsx'; // Import the new API Key Manager
 import * as dbService from '../services/dbService.ts';
 import { METADATA_KEYS } from '../services/dbService.ts';
 
@@ -149,6 +146,10 @@ const SettingsPanel: React.FC = memo(() => {
         }
     }, [currentChatSession, ui]);
 
+    const handleOpenApiKeyModal = useCallback(() => {
+        ui.openApiKeyModal();
+    }, [ui]);
+
     if (!ui.isSettingsPanelOpen || !currentChatSession) return null;
 
     const showThinkingBudgetControl = MODELS_SUPPORTING_THINKING_BUDGET_UI.includes(localModel);
@@ -161,7 +162,13 @@ const SettingsPanel: React.FC = memo(() => {
                     <button onClick={ui.closeSettingsPanel} className="absolute top-3 right-3 text-gray-400 p-1 rounded-full transition-shadow hover:text-gray-100 hover:shadow-[0_0_10px_1px_rgba(255,255,255,0.2)]" aria-label="Close settings"><CloseIcon className="w-6 h-6" /></button>
                     <h2 className="text-2xl font-semibold mb-6 text-gray-100">Settings</h2>
                     <div className="space-y-6">
-                        <ApiKeyManager />
+                        <div className="border-t border-[var(--aurora-border)] pt-4">
+                            <div className="flex justify-between items-center mb-2">
+                                <div className="flex items-center"><KeyIcon className="w-5 h-5 mr-2 text-yellow-400" /><h3 className="text-md font-medium text-gray-300">API Key Management</h3></div>
+                                <button onClick={handleOpenApiKeyModal} className="text-sm text-blue-400 flex items-center transition-all hover:text-blue-300 hover:drop-shadow-[0_0_3px_rgba(147,197,253,0.8)]" aria-label="Manage API Keys">Manage <PencilIcon className="w-3 h-3 ml-1" /></button>
+                            </div>
+                            <p className="text-xs text-gray-400">Add, remove, and reorder your Gemini API keys. The top key in the list is the active one.</p>
+                        </div>
 
                         <div>
                             <label htmlFor="model" className="block text-sm font-medium text-gray-300 mb-1">Model</label>

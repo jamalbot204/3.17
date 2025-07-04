@@ -73,14 +73,20 @@ input.aurora-input, textarea.aurora-textarea, select.aurora-select {
 .markdown-content em { font-style: italic; color: #c3baff; }
 .markdown-content a { color: var(--aurora-accent-hover); text-decoration: none; border-bottom: 1px dotted; }
 .markdown-content a:hover { color: var(--aurora-glow); border-bottom: 1px solid; }
-.markdown-content p, .markdown-content li > p {
+/* This rule now includes 'div' to fix the newline rendering issue. */
+.markdown-content p, .markdown-content li > p, .markdown-content div {
     margin-bottom: 0.5em; margin-top: 0.5em; overflow-wrap: break-word; word-break: normal; white-space: pre-line;
 }
 .markdown-content blockquote {
   border-left: 2px solid var(--aurora-accent-secondary);
   padding-left: 1em; margin-left: 0; color: var(--text-secondary); font-style: italic;
 }
-.markdown-content ul, .markdown-content ol { padding-left: 1.5em; margin-top: 0.5em; margin-bottom: 0.5em; }
+/* This rule adds list-style properties to fix numbered and bulleted lists. */
+.markdown-content ul, .markdown-content ol {
+    padding-left: 1.5em; margin-top: 0.5em; margin-bottom: 0.5em; list-style-position: outside;
+}
+.markdown-content ul { list-style-type: disc; }
+.markdown-content ol { list-style-type: decimal; }
 .markdown-content li { margin-bottom: 0.25em; }
 .markdown-content table {
     width: auto; border-collapse: collapse; margin-top: 1em; margin-bottom: 1em; border: 1px solid var(--aurora-border);

@@ -1,6 +1,3 @@
-
-
-
 import React, { createContext, useContext, ReactNode, useMemo } from 'react';
 import { useAppUI, ToastInfo } from '../hooks/useAppUI.ts';
 import { useAppModals, FilenameInputModalTriggerProps } from '../hooks/useAppModals.ts';
@@ -68,6 +65,11 @@ interface UIContextType {
   attachmentsForModal: AttachmentWithContext[];
   openChatAttachmentsModal: (session: ChatSession | null) => void;
   closeChatAttachmentsModal: () => void;
+
+  // For ApiKeyModal
+  isApiKeyModalOpen: boolean;
+  openApiKeyModal: () => void;
+  closeApiKeyModal: () => void;
 
   // For multi-select
   isSelectionModeActive: boolean;

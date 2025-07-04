@@ -3,7 +3,7 @@ import { UIProvider } from './contexts/UIContext.tsx';
 import { ChatProvider } from './contexts/ChatContext.tsx';
 import { AudioProvider } from './contexts/AudioContext.tsx';
 import { ApiKeyProvider } from './contexts/ApiKeyContext.tsx';
-import AppContent from './components/AppContent.tsx'; 
+const AppContent = React.lazy(() => import('./components/AppContent.tsx'));
 
 const App: React.FC = memo(() => {
   return (

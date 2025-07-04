@@ -1,4 +1,3 @@
-
 import React, { useRef, useCallback, useState, memo } from 'react';
 import { useChatState, useChatActions } from '../contexts/ChatContext.tsx';
 import { useUIContext } from '../contexts/UIContext.tsx';
@@ -21,6 +20,7 @@ import ExportConfigurationModal from './ExportConfigurationModal.tsx';
 import FilenameInputModal from './FilenameInputModal.tsx';
 import ChatAttachmentsModal from './ChatAttachmentsModal.tsx';
 import MultiSelectActionBar from './MultiSelectActionBar.tsx';
+import ApiKeyModal from './ApiKeyModal.tsx';
 
 
 const AppContent: React.FC = memo(() => {
@@ -117,6 +117,7 @@ const AppContent: React.FC = memo(() => {
         <ReadModeView isOpen={isReadModeOpen} content={readModeContent} onClose={handleCloseReadMode} />
         
         <SettingsPanel />
+        <ApiKeyModal isOpen={ui.isApiKeyModalOpen} onClose={ui.closeApiKeyModal} />
         <ExportConfigurationModal />
         <TtsSettingsModal />
         <EditMessagePanel />
